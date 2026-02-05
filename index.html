@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QR Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 40px;
+        }
+        input {
+            width: 350px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 16px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #qr-container {
+            margin-top: 25px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>QR Code Generator</h2>
+
+    <input id="urlInput" type="text" placeholder="Enter a link…">
+    <button onclick="generateQR()">Generate</button>
+
+    <div id="qr-container"></div>
+    <a id="downloadLink" style="display:none; margin-top: 20px;" download="qr_code.png">Download QR</a>
+
+    <script>
+        function generateQR() {
+            const url = document.getElementById("urlInput").value.trim();
+            const container = document.getElementById("qr-container");
+            const downloadLink = document.getElementById("downloadLink");
+
+            if (!url) {
+                alert("Enter a link first.");
+                return;
+            }
+
+            container.innerHTML = ""; // clear old QR
+
+            QRCode.toCanvas(url, { width: 256 }, function (err, canvas) {
+                if (err) {
+                    console.error(err);
+                    alert("Error generating QR.");
+                    return;
+                }
+
+                container.appendChild(canvas);
+
+                // prepare PNG download
+                const pngUrl = canvas.toDataURL("image/png");
+                downloadLink.href = pngUrl;
+                downloadLink.style.display = "inline-block";
+                downloadLink.innerText = "Download QR Code";
+            });
+        }
+    </script>
+
+</body>
+</html>
