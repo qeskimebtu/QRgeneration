@@ -1,73 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>QR Generator</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-    <style>
-        body {
-            font-family: Arial;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 40px;
-        }
-        input {
-            width: 350px;
-            padding: 10px;
-            font-size: 16px;
-        }
-        button {
-            margin-top: 10px;
-            padding: 10px 16px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        #qr-container {
-            margin-top: 25px;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>QR Code Generator</title>
+
+<!-- QR Library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+}
+
+h2 {
+  margin-bottom: 10px;
+}
+
+input {
+  width: 360px;
+  padding: 10px;
+  font-size: 16px;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px 18px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.wrapper {
+  display: flex;
+  gap: 30px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.qr-block {
+  text-align: center;
+  width: 260px;
+}
+
+.qr-preview {
+  width: 220px;    
+  height: auto;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+}
+
+a {
+  display: block;
+  margin-top: 8px;
+  color: blue;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+#downloadAllBtn {
+  margin-top: 30px;
+}
+</style>
 </head>
+
 <body>
 
-    <h2>QR Code Generator</h2>
+<h2>QR Code Generator</h2>
 
-    <input id="urlInput" type="text" placeholder="Enter a link…">
-    <button onclick="generateQR()">Generate</button>
+<input id="urlInput" placeholder="Enter a link...">
+<button onclick="generateAll()">Generate</button>
 
-    <div id="qr-container"></div>
-    <a id="downloadLink" style="display:none; margin-top: 20px;" download="qr_code.png">Download QR</a>
+<div class="wrapper">
+  <div id="small" class="qr-block"></div>
+  <div id="a4" class="qr-block"></div>
+  <div id="a6" class="qr-block"></div>
+</div>
 
-    <script>
-        function generateQR() {
-            const url = document.getElementById("urlInput").value.trim();
-            const container = document.getElementById("qr-container");
-            const downloadLink = document.getElementById("downloadLink");
+<button id="downloadAllBtn" style="display:none;" onclick="downloadAll()">
+  Download ALL
+</button>
 
-            if (!url) {
-                alert("Enter a link first.");
-                return;
-            }
+<script>
 
-            container.innerHTML = ""; // clear old QR
+const results = {};
 
-            QRCode.toCanvas(url, { width: 256 }, function (err, canvas) {
-                if (err) {
-                    console.error(err);
-                    alert("Error generating QR.");
-                    return;
-                }
+function generateAll() {
 
-                container.appendChild(canvas);
+  const url = document.getElementById("urlInput").value.trim();
+  if (!url) {
+    alert("Please enter a link");
+    return;
+  }
 
-                // prepare PNG download
-                const pngUrl = canvas.toDataURL("image/png");
-                downloadLink.href = pngUrl;
-                downloadLink.style.display = "inline-block";
-                downloadLink.innerText = "Download QR Code";
-            });
-        }
-    </script>
+  document.getElementById("small").innerHTML = "";
+  document.getElementById("a4").innerHTML = "";
+  document.getElementById("a6").innerHTML = "";
+  Object.keys(results).forEach(k => delete results[k]);
+
+  createQR("small", "Small (256px)", 256, "qr_small.png", url);
+  createQR("a4", "A4 Print", 2000, "qr_A4.png", url);
+  createQR("a6", "A6 Landscape", 1000, "qr_A6.png", url);
+
+  document.getElementById("downloadAllBtn").style.display = "block";
+}
+
+function createQR(containerId, title, size, filename, url) {
+
+  QRCode.toCanvas(url, { width: size }, function (err, canvas) {
+
+    if (err) {
+      console.error(err);
+      alert("QR generation error");
+      return;
+    }
+
+    const box = document.getElementById(containerId);
+
+    const h3 = document.createElement("h3");
+    h3.innerText = title;
+
+    canvas.classList.add("qr-preview");
+
+    const link = document.createElement("a");
+    link.innerText = "Download";
+    link.download = filename;
+    link.href = canvas.toDataURL("image/png");
+
+    box.appendChild(h3);
+    box.appendChild(canvas);
+    box.appendChild(link);
+
+    results[filename] = link.href;
+  });
+}
+
+function downloadAll() {
+  Object.entries(results).forEach(([name, data]) => {
+    const a = document.createElement("a");
+    a.href = data;
+    a.download = name;
+    a.click();
+  });
+}
+
+</script>
 
 </body>
 </html>
