@@ -3,138 +3,163 @@
 <head>
 <meta charset="UTF-8">
 <title>QR Code Generator</title>
-
-<!-- QR Library -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-
 <style>
-body {
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 40px;
-}
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 40px;
+    background: #f5f5f5;
+  }
 
-h2 {
-  margin-bottom: 10px;
-}
+  h2 { margin-bottom: 10px; }
 
-input {
-  width: 360px;
-  padding: 10px;
-  font-size: 16px;
-}
+  input {
+    width: 360px;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
 
-button {
-  margin-top: 10px;
-  padding: 10px 18px;
-  font-size: 16px;
-  cursor: pointer;
-}
+  button {
+    margin-top: 10px;
+    padding: 10px 18px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    border: none;
+    background: #333;
+    color: white;
+  }
 
-.wrapper {
-  display: flex;
-  gap: 30px;
-  margin-top: 30px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+  button:hover { background: #555; }
 
-.qr-block {
-  text-align: center;
-  width: 260px;
-}
+  .wrapper {
+    display: flex;
+    gap: 30px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 
-.qr-preview {
-  width: 220px;    
-  height: auto;
-  margin-top: 10px;
-  border: 1px solid #ccc;
-}
+  .qr-block {
+    text-align: center;
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    width: 220px;
+  }
 
-a {
-  display: block;
-  margin-top: 8px;
-  color: blue;
-  cursor: pointer;
-  text-decoration: underline;
-}
+  .qr-block h3 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: #444;
+  }
 
-#downloadAllBtn {
-  margin-top: 30px;
-}
+  /* Preview image — always crisp 200px regardless of source size */
+  .qr-preview {
+    width: 200px;
+    height: 200px;
+    image-rendering: pixelated;  /* keeps QR sharp when scaled down */
+    display: block;
+    margin: 0 auto;
+    border: 1px solid #eee;
+  }
+
+  .qr-meta {
+    font-size: 11px;
+    color: #999;
+    margin-top: 6px;
+  }
+
+  a.dl-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: #0066cc;
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  #downloadAllBtn {
+    margin-top: 30px;
+    background: #0066cc;
+  }
+
+  #downloadAllBtn:hover { background: #0052a3; }
 </style>
 </head>
-
 <body>
 
 <h2>QR Code Generator</h2>
-
 <input id="urlInput" placeholder="Enter a link...">
 <button onclick="generateAll()">Generate</button>
 
 <div class="wrapper">
   <div id="small" class="qr-block"></div>
-  <div id="a4" class="qr-block"></div>
-  <div id="a6" class="qr-block"></div>
+  <div id="a4"    class="qr-block"></div>
+  <div id="a6"    class="qr-block"></div>
 </div>
 
 <button id="downloadAllBtn" style="display:none;" onclick="downloadAll()">
-  Download ALL
+  ⬇ Download ALL
 </button>
 
 <script>
-
 const results = {};
 
 function generateAll() {
-
   const url = document.getElementById("urlInput").value.trim();
-  if (!url) {
-    alert("Please enter a link");
-    return;
-  }
+  if (!url) { alert("Please enter a link"); return; }
 
-  document.getElementById("small").innerHTML = "";
-  document.getElementById("a4").innerHTML = "";
-  document.getElementById("a6").innerHTML = "";
+  ["small","a4","a6"].forEach(id => document.getElementById(id).innerHTML = "");
   Object.keys(results).forEach(k => delete results[k]);
 
-  createQR("small", "Small (256px)", 256, "qr_small.png", url);
-  createQR("a4", "A4 Print", 2000, "qr_A4.png", url);
-  createQR("a6", "A6 Landscape", 1000, "qr_A6.png", url);
+  // size = actual export pixel size; label = display label; sub = size hint for user
+  createQR("small", "Small (256px)",     256,  "qr_small.png", url);
+  createQR("a4",    "A4 Print (2000px)", 2000, "qr_A4.png",   url);
+  createQR("a6",    "A6 Print (1000px)", 1000, "qr_A6.png",   url);
 
   document.getElementById("downloadAllBtn").style.display = "block";
 }
 
 function createQR(containerId, title, size, filename, url) {
+  QRCode.toCanvas(url, { width: size, margin: 2 }, function(err, canvas) {
+    if (err) { console.error(err); return; }
 
-  QRCode.toCanvas(url, { width: size }, function (err, canvas) {
-
-    if (err) {
-      console.error(err);
-      alert("QR generation error");
-      return;
-    }
+    // Convert full-size canvas → data URL (for download + crisp preview)
+    const dataUrl = canvas.toDataURL("image/png");
+    results[filename] = dataUrl;
 
     const box = document.getElementById(containerId);
 
     const h3 = document.createElement("h3");
     h3.innerText = title;
 
-    canvas.classList.add("qr-preview");
+    // Use <img> for preview — scales cleanly from any resolution
+    const img = document.createElement("img");
+    img.src = dataUrl;
+    img.className = "qr-preview";
+    img.alt = "QR Code";
+
+    const meta = document.createElement("p");
+    meta.className = "qr-meta";
+    meta.innerText = `${size} × ${size} px`;
 
     const link = document.createElement("a");
+    link.className = "dl-link";
     link.innerText = "Download";
     link.download = filename;
-    link.href = canvas.toDataURL("image/png");
+    link.href = dataUrl;
 
     box.appendChild(h3);
-    box.appendChild(canvas);
+    box.appendChild(img);
+    box.appendChild(meta);
     box.appendChild(link);
-
-    results[filename] = link.href;
   });
 }
 
@@ -146,8 +171,6 @@ function downloadAll() {
     a.click();
   });
 }
-
 </script>
-
 </body>
 </html>
